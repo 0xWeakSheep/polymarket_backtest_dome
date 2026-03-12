@@ -3,10 +3,10 @@ from typing import Dict, Iterable, List, Optional
 
 
 SECONDS_PER_MINUTE = 60
-FIVE_MINUTE_INTERVAL = 5 * SECONDS_PER_MINUTE
 MAX_FIVE_MINUTE_DURATION_SECONDS = 10 * SECONDS_PER_MINUTE
 ONE_MINUTE_CANDLE_INTERVAL = 1
 MAX_ONE_MINUTE_RANGE_SECONDS = 7 * 24 * 60 * 60
+SUPPORTED_BINARY_LABEL_SETS = ({"yes", "no"}, {"up", "down"})
 
 
 @dataclass
@@ -17,12 +17,17 @@ class ArrivalHit:
     title: str
     start_time: Optional[int]
     end_time: Optional[int]
-    yes_token_id: str
-    no_token_id: str
-    yes_max_price: float
-    no_max_price: float
-    yes_hit_levels: List[str]
-    no_hit_levels: List[str]
+    outcome_a_label: str
+    outcome_b_label: str
+    outcome_a_token_id: str
+    outcome_b_token_id: str
+    outcome_a_max_price: float
+    outcome_b_max_price: float
+    outcome_a_hit_levels: List[str]
+    outcome_b_hit_levels: List[str]
+
+    def has_any_hit(self) -> bool:
+        return bool(self.outcome_a_hit_levels or self.outcome_b_hit_levels)
 
     def to_dict(self) -> Dict[str, object]:
         return {
@@ -32,12 +37,14 @@ class ArrivalHit:
             "title": self.title,
             "start_time": self.start_time,
             "end_time": self.end_time,
-            "yes_token_id": self.yes_token_id,
-            "no_token_id": self.no_token_id,
-            "yes_max_price": self.yes_max_price,
-            "no_max_price": self.no_max_price,
-            "yes_hit_levels": self.yes_hit_levels,
-            "no_hit_levels": self.no_hit_levels,
+            "outcome_a_label": self.outcome_a_label,
+            "outcome_b_label": self.outcome_b_label,
+            "outcome_a_token_id": self.outcome_a_token_id,
+            "outcome_b_token_id": self.outcome_b_token_id,
+            "outcome_a_max_price": self.outcome_a_max_price,
+            "outcome_b_max_price": self.outcome_b_max_price,
+            "outcome_a_hit_levels": self.outcome_a_hit_levels,
+            "outcome_b_hit_levels": self.outcome_b_hit_levels,
         }
 
 
@@ -65,8 +72,10 @@ def market_is_btc_five_minute(market: Dict[str, object]) -> bool:
     event_slug = str(market.get("event_slug") or "").lower()
     combined_text = " ".join([title, market_slug, event_slug])
 
-    is_btc = "bitcoin" in combined_text or "btc" in combined_text
-    if not is_btc:
+    if not market_slug.startswith("btc-updown-5m-"):
+        return False
+
+    if "bitcoin" not in combined_text and "btc" not in combined_text:
         return False
 
     side_a = market.get("side_a") or {}
@@ -76,43 +85,34 @@ def market_is_btc_five_minute(market: Dict[str, object]) -> bool:
 
     side_a_label = str(side_a.get("label") or "").strip().lower()
     side_b_label = str(side_b.get("label") or "").strip().lower()
-    if {side_a_label, side_b_label} != {"yes", "no"}:
+    if {side_a_label, side_b_label} not in SUPPORTED_BINARY_LABEL_SETS:
         return False
 
-    start_time_raw = market.get("start_time")
-    end_time_raw = market.get("end_time")
-    try:
-        start_time = int(start_time_raw)
-        end_time = int(end_time_raw)
-    except (TypeError, ValueError):
-        return False
-
-    duration = end_time - start_time
-    if duration <= 0:
-        return False
-
-    return duration <= MAX_FIVE_MINUTE_DURATION_SECONDS
+    return True
 
 
-def extract_yes_no_tokens(market: Dict[str, object]) -> Optional[Dict[str, str]]:
+def extract_binary_tokens(market: Dict[str, object]) -> Optional[Dict[str, str]]:
     side_a = market.get("side_a") or {}
     side_b = market.get("side_b") or {}
     if not isinstance(side_a, dict) or not isinstance(side_b, dict):
         return None
 
-    side_a_label = str(side_a.get("label") or "").strip().lower()
-    side_b_label = str(side_b.get("label") or "").strip().lower()
+    side_a_label = str(side_a.get("label") or "").strip()
+    side_b_label = str(side_b.get("label") or "").strip()
     side_a_token = str(side_a.get("id") or "").strip()
     side_b_token = str(side_b.get("id") or "").strip()
 
     if not side_a_token or not side_b_token:
         return None
+    if {side_a_label.lower(), side_b_label.lower()} not in SUPPORTED_BINARY_LABEL_SETS:
+        return None
 
-    if side_a_label == "yes" and side_b_label == "no":
-        return {"yes_token_id": side_a_token, "no_token_id": side_b_token}
-    if side_a_label == "no" and side_b_label == "yes":
-        return {"yes_token_id": side_b_token, "no_token_id": side_a_token}
-    return None
+    return {
+        "outcome_a_label": side_a_label,
+        "outcome_b_label": side_b_label,
+        "outcome_a_token_id": side_a_token,
+        "outcome_b_token_id": side_b_token,
+    }
 
 
 def analyze_market_arrival(
@@ -120,12 +120,12 @@ def analyze_market_arrival(
     candle_payloads: Iterable[Dict[str, object]],
     thresholds: List[float],
 ) -> Optional[ArrivalHit]:
-    tokens = extract_yes_no_tokens(market)
+    tokens = extract_binary_tokens(market)
     if tokens is None:
         return None
 
-    yes_max_price = 0.0
-    no_max_price = 0.0
+    outcome_a_max_price = 0.0
+    outcome_b_max_price = 0.0
 
     for candle_payload in candle_payloads:
         token_id = str(candle_payload.get("token_id") or "").strip()
@@ -147,16 +147,13 @@ def analyze_market_arrival(
             if high_price > current_max:
                 current_max = high_price
 
-        if token_id == tokens["yes_token_id"] and current_max > yes_max_price:
-            yes_max_price = current_max
-        if token_id == tokens["no_token_id"] and current_max > no_max_price:
-            no_max_price = current_max
+        if token_id == tokens["outcome_a_token_id"] and current_max > outcome_a_max_price:
+            outcome_a_max_price = current_max
+        if token_id == tokens["outcome_b_token_id"] and current_max > outcome_b_max_price:
+            outcome_b_max_price = current_max
 
-    yes_hit_levels = [format_threshold(level) for level in thresholds if yes_max_price >= level]
-    no_hit_levels = [format_threshold(level) for level in thresholds if no_max_price >= level]
-
-    if not yes_hit_levels and not no_hit_levels:
-        return None
+    outcome_a_hit_levels = [format_threshold(level) for level in thresholds if outcome_a_max_price >= level]
+    outcome_b_hit_levels = [format_threshold(level) for level in thresholds if outcome_b_max_price >= level]
 
     start_time_raw = market.get("start_time")
     end_time_raw = market.get("end_time")
@@ -176,10 +173,12 @@ def analyze_market_arrival(
         title=str(market.get("title") or ""),
         start_time=start_time,
         end_time=end_time,
-        yes_token_id=tokens["yes_token_id"],
-        no_token_id=tokens["no_token_id"],
-        yes_max_price=yes_max_price,
-        no_max_price=no_max_price,
-        yes_hit_levels=yes_hit_levels,
-        no_hit_levels=no_hit_levels,
+        outcome_a_label=tokens["outcome_a_label"],
+        outcome_b_label=tokens["outcome_b_label"],
+        outcome_a_token_id=tokens["outcome_a_token_id"],
+        outcome_b_token_id=tokens["outcome_b_token_id"],
+        outcome_a_max_price=outcome_a_max_price,
+        outcome_b_max_price=outcome_b_max_price,
+        outcome_a_hit_levels=outcome_a_hit_levels,
+        outcome_b_hit_levels=outcome_b_hit_levels,
     )

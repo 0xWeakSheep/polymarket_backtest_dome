@@ -4,7 +4,7 @@
 
 - 尾盘高概率价格区间的反转频率统计，比如 `0.95+`
 - 加密市场的波动率与到达率研究
-- BTC 五分钟 `Yes/No` 市场的价格到达率统计
+- BTC 五分钟 `Up/Down` 市场的价格到达率统计
 
 目录先保持简单，按“配置、数据、公共能力、研究主题”来分，不按接口拆得太细。
 
@@ -73,8 +73,8 @@ polymarket_backtest/
 
 `src/research/btc_5m_arrival/`
 
-- 放 BTC 五分钟 `Yes/No` 市场的价格到达率课题。
-- 目前用 `markets + candlesticks`，统计 `Yes` 和 `No` 在 `0.52-0.58` 各档价格的到达频率。
+- 放 BTC 五分钟 `Up/Down` 市场的价格到达率课题。
+- 当前按 `btc-updown-5m-<timestamp>` 的 slug 规则生成全量盘口，再用 `candlesticks` 统计市场级到达频率。
 
 `src/utils/`
 
@@ -149,11 +149,12 @@ python3 -m src.research.btc_5m_arrival.analyze_arrival --min-threshold 0.52 --ma
 
 脚本会：
 
-- 扫描所有 `closed` 市场
-- 只筛选 BTC 五分钟、且 outcome 为 `Yes/No` 的市场
+- 从 `btc-updown-5m-1770932400` 开始按 `300` 秒等差生成市场 slug
+- 直接批量请求 BTC 五分钟 `Up/Down` 市场
 - 对每个匹配市场拉 `1m candlesticks`
-- 统计 `Yes` 和 `No` 历史最高价分别到达过哪些价格档位
-- 汇总 `0.52-0.58` 每一档的到达次数和到达频率
+- 统计单个盘口在 `0.52-0.58` 各价位是否到达过
+- 汇总市场级到达次数和到达频率
+- 额外记录“未到达任何目标价位”的盘口
 - 支持断点续跑
 
 输出默认在：
@@ -161,7 +162,7 @@ python3 -m src.research.btc_5m_arrival.analyze_arrival --min-threshold 0.52 --ma
 - `data/raw/btc_5m_arrival/markets/selected_markets.jsonl`
 - `data/processed/btc_5m_arrival/progress.json`
 - `data/processed/btc_5m_arrival/summary.json`
-- `data/processed/btc_5m_arrival/hits.jsonl`
+- `data/processed/btc_5m_arrival/misses.jsonl`
 - `data/processed/btc_5m_arrival/failed_markets.jsonl`
 
 继续跑的命令：
@@ -170,6 +171,52 @@ python3 -m src.research.btc_5m_arrival.analyze_arrival --min-threshold 0.52 --ma
 export DOME_API_KEY=your_api_key
 python3 -m src.research.btc_5m_arrival.analyze_arrival --resume
 ```
+
+## PM2 运维
+
+项目里已经补了 `pm2` 管理文件，适合长时间跑回测：
+
+- `ecosystem.config.cjs`
+- `scripts/run_btc_5m_arrival.sh`
+- `scripts/run_tail_reversal.sh`
+- `logs/`
+
+先设置环境变量：
+
+```bash
+export DOME_API_KEY=your_api_key
+```
+
+启动 BTC 五分钟到达率任务：
+
+```bash
+pm2 start ecosystem.config.cjs --only btc-5m-arrival
+```
+
+启动 `0.95` 反转任务：
+
+```bash
+pm2 start ecosystem.config.cjs --only tail-reversal-095
+```
+
+常用命令：
+
+```bash
+pm2 status
+pm2 logs btc-5m-arrival
+pm2 logs tail-reversal-095
+pm2 restart btc-5m-arrival
+pm2 stop btc-5m-arrival
+pm2 delete btc-5m-arrival
+pm2 save
+```
+
+日志默认写到：
+
+- `logs/btc_5m_arrival.out.log`
+- `logs/btc_5m_arrival.err.log`
+- `logs/tail_reversal_095.out.log`
+- `logs/tail_reversal_095.err.log`
 
 ## 这样分的原因
 

@@ -113,6 +113,9 @@ class DomeClient:
     def iter_closed_markets(self) -> Iterable[Dict[str, object]]:
         return self.paginate("/polymarket/markets", "markets", params={"status": "closed"}, limit=100)
 
+    def iter_markets(self, params: Optional[Dict[str, object]] = None) -> Iterable[Dict[str, object]]:
+        return self.paginate("/polymarket/markets", "markets", params=params, limit=100)
+
     def iter_closed_market_pages(
         self, start_pagination_key: Optional[str] = None
     ) -> Iterable[Dict[str, object]]:
@@ -121,6 +124,21 @@ class DomeClient:
             "markets",
             params={"status": "closed"},
             limit=100,
+            start_pagination_key=start_pagination_key,
+        )
+
+    def iter_market_pages(
+        self,
+        *,
+        params: Optional[Dict[str, object]] = None,
+        start_pagination_key: Optional[str] = None,
+        limit: int = 100,
+    ) -> Iterable[Dict[str, object]]:
+        return self.paginate_pages(
+            "/polymarket/markets",
+            "markets",
+            params=params,
+            limit=limit,
             start_pagination_key=start_pagination_key,
         )
 

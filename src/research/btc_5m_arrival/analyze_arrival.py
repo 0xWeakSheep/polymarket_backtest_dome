@@ -1,5 +1,6 @@
 import argparse
 import json
+import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set
 
@@ -49,25 +50,53 @@ def load_condition_ids(path: Path) -> Set[str]:
     return condition_ids
 
 
+def align_timestamp_to_step(timestamp: int, step_seconds: int) -> int:
+    return timestamp - (timestamp % step_seconds)
+
+
+def build_market_slugs(
+    *,
+    slug_prefix: str,
+    start_timestamp: int,
+    step_seconds: int,
+    batch_size: int,
+    end_timestamp: int,
+) -> List[str]:
+    slugs: List[str] = []
+    current_timestamp = start_timestamp
+    while current_timestamp <= end_timestamp and len(slugs) < batch_size:
+        slugs.append(f"{slug_prefix}-{current_timestamp}")
+        current_timestamp += step_seconds
+    return slugs
+
+
 def build_progress(
     *,
     thresholds: List[float],
-    scanned_closed_markets: int,
-    matched_markets: int,
+    slug_prefix: str,
+    first_slug_timestamp: int,
+    next_slug_timestamp: int,
+    requested_slug_count: int,
+    fetched_candidate_markets: int,
+    matched_target_markets: int,
     processed_markets: int,
     hit_markets: int,
+    no_arrival_markets: int,
     failed_markets: int,
-    markets_page_pagination_key: Optional[str],
     last_completed_condition_id: Optional[str],
 ) -> Dict[str, object]:
     return {
         "thresholds": [format_threshold(value) for value in thresholds],
-        "scanned_closed_markets": scanned_closed_markets,
-        "matched_markets": matched_markets,
+        "slug_prefix": slug_prefix,
+        "first_slug_timestamp": first_slug_timestamp,
+        "next_slug_timestamp": next_slug_timestamp,
+        "requested_slug_count": requested_slug_count,
+        "fetched_candidate_markets": fetched_candidate_markets,
+        "matched_target_markets": matched_target_markets,
         "processed_markets": processed_markets,
         "hit_markets": hit_markets,
+        "no_arrival_markets": no_arrival_markets,
         "failed_markets": failed_markets,
-        "markets_page_pagination_key": markets_page_pagination_key,
         "last_completed_condition_id": last_completed_condition_id,
     }
 
@@ -75,54 +104,64 @@ def build_progress(
 def build_summary(
     *,
     thresholds: List[float],
-    scanned_closed_markets: int,
-    matched_markets: int,
+    slug_prefix: str,
+    first_slug_timestamp: int,
+    requested_slug_count: int,
+    fetched_candidate_markets: int,
+    matched_target_markets: int,
     processed_markets: int,
     hit_markets: int,
+    no_arrival_markets: int,
     failed_markets: int,
-    yes_hits_by_threshold: Dict[str, int],
-    no_hits_by_threshold: Dict[str, int],
+    up_hits_by_threshold: Dict[str, int],
+    down_hits_by_threshold: Dict[str, int],
 ) -> Dict[str, object]:
-    yes_rates: Dict[str, float] = {}
-    no_rates: Dict[str, float] = {}
-    combined_hits: Dict[str, int] = {}
-    combined_rates: Dict[str, float] = {}
+    up_rates: Dict[str, float] = {}
+    down_rates: Dict[str, float] = {}
     denominator = processed_markets if processed_markets > 0 else 0
 
     for threshold in thresholds:
         key = format_threshold(threshold)
-        yes_count = yes_hits_by_threshold.get(key, 0)
-        no_count = no_hits_by_threshold.get(key, 0)
-        combined_count = yes_count + no_count
-        yes_rates[key] = round(yes_count / denominator, 6) if denominator else 0.0
-        no_rates[key] = round(no_count / denominator, 6) if denominator else 0.0
-        combined_hits[key] = combined_count
-        combined_rates[key] = round(combined_count / denominator, 6) if denominator else 0.0
+        up_count = up_hits_by_threshold.get(key, 0)
+        down_count = down_hits_by_threshold.get(key, 0)
+        up_rates[key] = round(up_count / denominator, 6) if denominator else 0.0
+        down_rates[key] = round(down_count / denominator, 6) if denominator else 0.0
 
     return {
-        "scanned_closed_markets": scanned_closed_markets,
-        "matched_markets": matched_markets,
+        "slug_prefix": slug_prefix,
+        "first_slug_timestamp": first_slug_timestamp,
+        "requested_slug_count": requested_slug_count,
+        "fetched_candidate_markets": fetched_candidate_markets,
+        "matched_target_markets": matched_target_markets,
+        "analyzed_markets": processed_markets,
         "processed_markets": processed_markets,
-        "hit_markets": hit_markets,
+        "arrival_markets": hit_markets,
+        "no_arrival_markets": no_arrival_markets,
         "failed_markets": failed_markets,
-        "combined_hits_by_threshold": combined_hits,
-        "combined_rate_by_threshold": combined_rates,
-        "yes_hits_by_threshold": yes_hits_by_threshold,
-        "no_hits_by_threshold": no_hits_by_threshold,
-        "yes_rate_by_threshold": yes_rates,
-        "no_rate_by_threshold": no_rates,
+        "up_arrival_count_by_threshold": up_hits_by_threshold,
+        "down_arrival_count_by_threshold": down_hits_by_threshold,
+        "up_arrival_rate_by_threshold": up_rates,
+        "down_arrival_rate_by_threshold": down_rates,
     }
 
 
-def update_counts_from_hit(
+def update_directional_counts(
     hit: ArrivalHit,
-    yes_hits_by_threshold: Dict[str, int],
-    no_hits_by_threshold: Dict[str, int],
+    up_hits_by_threshold: Dict[str, int],
+    down_hits_by_threshold: Dict[str, int],
 ) -> None:
-    for level in hit.yes_hit_levels:
-        yes_hits_by_threshold[level] = yes_hits_by_threshold.get(level, 0) + 1
-    for level in hit.no_hit_levels:
-        no_hits_by_threshold[level] = no_hits_by_threshold.get(level, 0) + 1
+    if hit.outcome_a_label.lower() == "up":
+        for level in set(hit.outcome_a_hit_levels):
+            up_hits_by_threshold[level] = up_hits_by_threshold.get(level, 0) + 1
+    if hit.outcome_a_label.lower() == "down":
+        for level in set(hit.outcome_a_hit_levels):
+            down_hits_by_threshold[level] = down_hits_by_threshold.get(level, 0) + 1
+    if hit.outcome_b_label.lower() == "up":
+        for level in set(hit.outcome_b_hit_levels):
+            up_hits_by_threshold[level] = up_hits_by_threshold.get(level, 0) + 1
+    if hit.outcome_b_label.lower() == "down":
+        for level in set(hit.outcome_b_hit_levels):
+            down_hits_by_threshold[level] = down_hits_by_threshold.get(level, 0) + 1
 
 
 def iter_candle_payloads(
@@ -159,8 +198,12 @@ def iter_candle_payloads(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Analyze arrival rates for BTC five-minute Yes/No markets using 1-minute candlesticks."
+        description="Analyze arrival rates for BTC five-minute Up/Down markets using arithmetic slug generation."
     )
+    parser.add_argument("--slug-prefix", default="btc-updown-5m")
+    parser.add_argument("--first-slug-timestamp", type=int, default=1770932400)
+    parser.add_argument("--step-seconds", type=int, default=300)
+    parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--min-threshold", type=float, default=0.52)
     parser.add_argument("--max-threshold", type=float, default=0.58)
     parser.add_argument("--step", type=float, default=0.01)
@@ -170,9 +213,9 @@ def parse_args() -> argparse.Namespace:
         help="Path to append selected BTC five-minute market metadata.",
     )
     parser.add_argument(
-        "--hits-jsonl",
-        default="data/processed/btc_5m_arrival/hits.jsonl",
-        help="Path to append markets where Yes or No hit any configured threshold.",
+        "--misses-jsonl",
+        default="data/processed/btc_5m_arrival/misses.jsonl",
+        help="Path to append markets where neither side hit any configured threshold.",
     )
     parser.add_argument(
         "--progress-json",
@@ -204,51 +247,55 @@ def main() -> None:
     thresholds = build_thresholds(args.min_threshold, args.max_threshold, args.step)
 
     selected_markets_jsonl = Path(args.selected_markets_jsonl)
-    hits_jsonl = Path(args.hits_jsonl)
+    misses_jsonl = Path(args.misses_jsonl)
     progress_json = Path(args.progress_json)
     summary_json = Path(args.summary_json)
     failed_markets_jsonl = Path(args.failed_markets_jsonl)
 
+    aligned_now = align_timestamp_to_step(int(time.time()), args.step_seconds)
     state = load_json(progress_json) if args.resume else {}
-    scanned_closed_markets = int(state.get("scanned_closed_markets") or 0)
-    matched_markets = int(state.get("matched_markets") or 0)
+    next_slug_timestamp = int(state.get("next_slug_timestamp") or args.first_slug_timestamp)
+    requested_slug_count = int(state.get("requested_slug_count") or 0)
+    fetched_candidate_markets = int(state.get("fetched_candidate_markets") or 0)
+    matched_target_markets = int(state.get("matched_target_markets") or 0)
     processed_markets = int(state.get("processed_markets") or 0)
     hit_markets = int(state.get("hit_markets") or 0)
+    no_arrival_markets = int(state.get("no_arrival_markets") or 0)
     failed_markets = int(state.get("failed_markets") or 0)
-    start_market_page_key = state.get("markets_page_pagination_key")
-    if start_market_page_key is not None:
-        start_market_page_key = str(start_market_page_key)
     last_completed_condition_id = state.get("last_completed_condition_id")
     if last_completed_condition_id is not None:
         last_completed_condition_id = str(last_completed_condition_id)
 
     summary_state = load_json(summary_json) if args.resume else {}
-    yes_hits_by_threshold = {
-        format_threshold(value): int((summary_state.get("yes_hits_by_threshold") or {}).get(format_threshold(value), 0))
+    up_hits_by_threshold = {
+        format_threshold(value): int((summary_state.get("up_arrival_count_by_threshold") or {}).get(format_threshold(value), 0))
         for value in thresholds
     }
-    no_hits_by_threshold = {
-        format_threshold(value): int((summary_state.get("no_hits_by_threshold") or {}).get(format_threshold(value), 0))
+    down_hits_by_threshold = {
+        format_threshold(value): int((summary_state.get("down_arrival_count_by_threshold") or {}).get(format_threshold(value), 0))
         for value in thresholds
     }
 
     seen_selected_ids = load_condition_ids(selected_markets_jsonl) if args.resume else set()
-    seen_hit_ids = load_condition_ids(hits_jsonl) if args.resume else set()
+    seen_miss_ids = load_condition_ids(misses_jsonl) if args.resume else set()
 
     client = DomeClient()
     analyzed_in_this_run = 0
-    should_skip_completed_in_first_page = args.resume and last_completed_condition_id is not None
 
     write_json(
         progress_json,
         build_progress(
             thresholds=thresholds,
-            scanned_closed_markets=scanned_closed_markets,
-            matched_markets=matched_markets,
+            slug_prefix=args.slug_prefix,
+            first_slug_timestamp=args.first_slug_timestamp,
+            next_slug_timestamp=next_slug_timestamp,
+            requested_slug_count=requested_slug_count,
+            fetched_candidate_markets=fetched_candidate_markets,
+            matched_target_markets=matched_target_markets,
             processed_markets=processed_markets,
             hit_markets=hit_markets,
+            no_arrival_markets=no_arrival_markets,
             failed_markets=failed_markets,
-            markets_page_pagination_key=start_market_page_key,
             last_completed_condition_id=last_completed_condition_id,
         ),
     )
@@ -256,32 +303,85 @@ def main() -> None:
         summary_json,
         build_summary(
             thresholds=thresholds,
-            scanned_closed_markets=scanned_closed_markets,
-            matched_markets=matched_markets,
+            slug_prefix=args.slug_prefix,
+            first_slug_timestamp=args.first_slug_timestamp,
+            requested_slug_count=requested_slug_count,
+            fetched_candidate_markets=fetched_candidate_markets,
+            matched_target_markets=matched_target_markets,
             processed_markets=processed_markets,
             hit_markets=hit_markets,
+            no_arrival_markets=no_arrival_markets,
             failed_markets=failed_markets,
-            yes_hits_by_threshold=yes_hits_by_threshold,
-            no_hits_by_threshold=no_hits_by_threshold,
+            up_hits_by_threshold=up_hits_by_threshold,
+            down_hits_by_threshold=down_hits_by_threshold,
         ),
     )
 
-    for page in client.iter_closed_market_pages(start_pagination_key=start_market_page_key):
-        page_pagination_key = page["page_pagination_key"]
-        if page_pagination_key is not None:
-            page_pagination_key = str(page_pagination_key)
+    print(
+        f"BTC 5m market source: slug_prefix={args.slug_prefix}, "
+        f"first_slug_timestamp={args.first_slug_timestamp}, step_seconds={args.step_seconds}"
+    )
 
-        for market in page["items"]:
+    while next_slug_timestamp <= aligned_now:
+        slug_batch = build_market_slugs(
+            slug_prefix=args.slug_prefix,
+            start_timestamp=next_slug_timestamp,
+            step_seconds=args.step_seconds,
+            batch_size=args.batch_size,
+            end_timestamp=aligned_now,
+        )
+        if not slug_batch:
+            break
+
+        requested_slug_count += len(slug_batch)
+
+        try:
+            payload = client._request_json(
+                "/polymarket/markets",
+                params={
+                    "market_slug": slug_batch,
+                    "status": "closed",
+                    "limit": len(slug_batch),
+                },
+            )
+        except DomeAPIError as exc:
+            append_jsonl(
+                failed_markets_jsonl,
+                {
+                    "slug_batch_start": slug_batch[0],
+                    "slug_batch_end": slug_batch[-1],
+                    "error": str(exc),
+                },
+            )
+            next_slug_timestamp += args.step_seconds * len(slug_batch)
+            failed_markets += 1
+            write_json(
+                progress_json,
+                build_progress(
+                    thresholds=thresholds,
+                    slug_prefix=args.slug_prefix,
+                    first_slug_timestamp=args.first_slug_timestamp,
+                    next_slug_timestamp=next_slug_timestamp,
+                    requested_slug_count=requested_slug_count,
+                    fetched_candidate_markets=fetched_candidate_markets,
+                    matched_target_markets=matched_target_markets,
+                    processed_markets=processed_markets,
+                    hit_markets=hit_markets,
+                    no_arrival_markets=no_arrival_markets,
+                    failed_markets=failed_markets,
+                    last_completed_condition_id=last_completed_condition_id,
+                ),
+            )
+            continue
+
+        markets = payload.get("markets", [])
+        if not isinstance(markets, list):
+            markets = []
+        fetched_candidate_markets += len(markets)
+
+        for market in markets:
             if not isinstance(market, dict):
                 continue
-
-            if should_skip_completed_in_first_page:
-                condition_id = str(market.get("condition_id") or "").strip()
-                if condition_id == last_completed_condition_id:
-                    should_skip_completed_in_first_page = False
-                continue
-
-            scanned_closed_markets += 1
             if not market_is_btc_five_minute(market):
                 continue
 
@@ -289,7 +389,7 @@ def main() -> None:
             if not condition_id:
                 continue
 
-            matched_markets += 1
+            matched_target_markets += 1
             analyzed_in_this_run += 1
             print(f"Processing BTC 5m market {processed_markets + 1}: {condition_id}")
 
@@ -300,6 +400,8 @@ def main() -> None:
                 "title": str(market.get("title") or ""),
                 "start_time": market.get("start_time"),
                 "end_time": market.get("end_time"),
+                "outcome_a_label": str((market.get("side_a") or {}).get("label") or ""),
+                "outcome_b_label": str((market.get("side_b") or {}).get("label") or ""),
             }
             if condition_id not in seen_selected_ids:
                 append_jsonl(selected_markets_jsonl, selected_row)
@@ -349,56 +451,37 @@ def main() -> None:
                 )
                 processed_markets += 1
                 last_completed_condition_id = condition_id
-                write_json(
-                    progress_json,
-                    build_progress(
-                        thresholds=thresholds,
-                        scanned_closed_markets=scanned_closed_markets,
-                        matched_markets=matched_markets,
-                        processed_markets=processed_markets,
-                        hit_markets=hit_markets,
-                        failed_markets=failed_markets,
-                        markets_page_pagination_key=page_pagination_key,
-                        last_completed_condition_id=last_completed_condition_id,
-                    ),
-                )
-                write_json(
-                    summary_json,
-                    build_summary(
-                        thresholds=thresholds,
-                        scanned_closed_markets=scanned_closed_markets,
-                        matched_markets=matched_markets,
-                        processed_markets=processed_markets,
-                        hit_markets=hit_markets,
-                        failed_markets=failed_markets,
-                        yes_hits_by_threshold=yes_hits_by_threshold,
-                        no_hits_by_threshold=no_hits_by_threshold,
-                    ),
-                )
-                print(f"Failed BTC 5m market {condition_id}: {exc}")
-                if args.max_markets and analyzed_in_this_run >= args.max_markets:
-                    break
+                continue
+
+            if hit is None:
                 continue
 
             processed_markets += 1
             last_completed_condition_id = condition_id
 
-            if hit is not None and condition_id not in seen_hit_ids:
-                append_jsonl(hits_jsonl, hit.to_dict())
-                update_counts_from_hit(hit, yes_hits_by_threshold, no_hits_by_threshold)
-                seen_hit_ids.add(condition_id)
+            if hit.has_any_hit():
+                update_directional_counts(hit, up_hits_by_threshold, down_hits_by_threshold)
                 hit_markets += 1
+            else:
+                no_arrival_markets += 1
+                if condition_id not in seen_miss_ids:
+                    append_jsonl(misses_jsonl, hit.to_dict())
+                    seen_miss_ids.add(condition_id)
 
             write_json(
                 progress_json,
                 build_progress(
                     thresholds=thresholds,
-                    scanned_closed_markets=scanned_closed_markets,
-                    matched_markets=matched_markets,
+                    slug_prefix=args.slug_prefix,
+                    first_slug_timestamp=args.first_slug_timestamp,
+                    next_slug_timestamp=next_slug_timestamp,
+                    requested_slug_count=requested_slug_count,
+                    fetched_candidate_markets=fetched_candidate_markets,
+                    matched_target_markets=matched_target_markets,
                     processed_markets=processed_markets,
                     hit_markets=hit_markets,
+                    no_arrival_markets=no_arrival_markets,
                     failed_markets=failed_markets,
-                    markets_page_pagination_key=page_pagination_key,
                     last_completed_condition_id=last_completed_condition_id,
                 ),
             )
@@ -406,35 +489,44 @@ def main() -> None:
                 summary_json,
                 build_summary(
                     thresholds=thresholds,
-                    scanned_closed_markets=scanned_closed_markets,
-                    matched_markets=matched_markets,
+                    slug_prefix=args.slug_prefix,
+                    first_slug_timestamp=args.first_slug_timestamp,
+                    requested_slug_count=requested_slug_count,
+                    fetched_candidate_markets=fetched_candidate_markets,
+                    matched_target_markets=matched_target_markets,
                     processed_markets=processed_markets,
                     hit_markets=hit_markets,
+                    no_arrival_markets=no_arrival_markets,
                     failed_markets=failed_markets,
-                    yes_hits_by_threshold=yes_hits_by_threshold,
-                    no_hits_by_threshold=no_hits_by_threshold,
+                    up_hits_by_threshold=up_hits_by_threshold,
+                    down_hits_by_threshold=down_hits_by_threshold,
                 ),
             )
 
             if processed_markets % 25 == 0:
                 print(
                     f"Processed {processed_markets} matched BTC 5m markets | "
-                    f"hits {hit_markets} | scanned closed markets {scanned_closed_markets}"
+                    f"hits {hit_markets} | misses {no_arrival_markets} | requested slugs {requested_slug_count}"
                 )
 
             if args.max_markets and analyzed_in_this_run >= args.max_markets:
                 break
 
+        next_slug_timestamp += args.step_seconds * len(slug_batch)
         write_json(
             progress_json,
             build_progress(
                 thresholds=thresholds,
-                scanned_closed_markets=scanned_closed_markets,
-                matched_markets=matched_markets,
+                slug_prefix=args.slug_prefix,
+                first_slug_timestamp=args.first_slug_timestamp,
+                next_slug_timestamp=next_slug_timestamp,
+                requested_slug_count=requested_slug_count,
+                fetched_candidate_markets=fetched_candidate_markets,
+                matched_target_markets=matched_target_markets,
                 processed_markets=processed_markets,
                 hit_markets=hit_markets,
+                no_arrival_markets=no_arrival_markets,
                 failed_markets=failed_markets,
-                markets_page_pagination_key=page["next_pagination_key"],
                 last_completed_condition_id=last_completed_condition_id,
             ),
         )
@@ -442,19 +534,39 @@ def main() -> None:
         if args.max_markets and analyzed_in_this_run >= args.max_markets:
             break
 
-        should_skip_completed_in_first_page = False
+    write_json(
+        summary_json,
+        build_summary(
+            thresholds=thresholds,
+            slug_prefix=args.slug_prefix,
+            first_slug_timestamp=args.first_slug_timestamp,
+            requested_slug_count=requested_slug_count,
+            fetched_candidate_markets=fetched_candidate_markets,
+            matched_target_markets=matched_target_markets,
+            processed_markets=processed_markets,
+            hit_markets=hit_markets,
+            no_arrival_markets=no_arrival_markets,
+            failed_markets=failed_markets,
+            up_hits_by_threshold=up_hits_by_threshold,
+            down_hits_by_threshold=down_hits_by_threshold,
+        ),
+    )
 
     print(
         json.dumps(
             build_summary(
                 thresholds=thresholds,
-                scanned_closed_markets=scanned_closed_markets,
-                matched_markets=matched_markets,
+                slug_prefix=args.slug_prefix,
+                first_slug_timestamp=args.first_slug_timestamp,
+                requested_slug_count=requested_slug_count,
+                fetched_candidate_markets=fetched_candidate_markets,
+                matched_target_markets=matched_target_markets,
                 processed_markets=processed_markets,
                 hit_markets=hit_markets,
+                no_arrival_markets=no_arrival_markets,
                 failed_markets=failed_markets,
-                yes_hits_by_threshold=yes_hits_by_threshold,
-                no_hits_by_threshold=no_hits_by_threshold,
+                up_hits_by_threshold=up_hits_by_threshold,
+                down_hits_by_threshold=down_hits_by_threshold,
             ),
             indent=2,
             ensure_ascii=True,
@@ -462,7 +574,7 @@ def main() -> None:
     )
     print(f"Progress: {progress_json}")
     print(f"Summary: {summary_json}")
-    print(f"Hits: {hits_jsonl}")
+    print(f"Misses: {misses_jsonl}")
     print(f"Selected markets: {selected_markets_jsonl}")
     print(f"Failures: {failed_markets_jsonl}")
 
