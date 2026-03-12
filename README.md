@@ -1,9 +1,10 @@
 # polymarket_backtest_dome
 
-这是一个基于 Dome API 的 Polymarket 研究型回测项目。当前先聚焦两个方向：
+这是一个基于 Dome API 的 Polymarket 研究型回测项目。当前先聚焦三个方向：
 
 - 尾盘高概率价格区间的反转频率统计，比如 `0.95+`
 - 加密市场的波动率与到达率研究
+- BTC 五分钟 `Yes/No` 市场的价格到达率统计
 
 目录先保持简单，按“配置、数据、公共能力、研究主题”来分，不按接口拆得太细。
 
@@ -22,6 +23,7 @@ polymarket_backtest/
 │   ├── data/
 │   ├── research/
 │   │   ├── tail_reversal/
+│   │   ├── btc_5m_arrival/
 │   │   └── vol_arrival/
 │   └── utils/
 ├── notebooks/
@@ -68,6 +70,11 @@ polymarket_backtest/
 
 - 放波动率与到达率课题相关逻辑。
 - 例如收益率、波动率、成交到达率、盘口特征计算。
+
+`src/research/btc_5m_arrival/`
+
+- 放 BTC 五分钟 `Yes/No` 市场的价格到达率课题。
+- 目前用 `markets + candlesticks`，统计 `Yes` 和 `No` 在 `0.52-0.58` 各档价格的到达频率。
 
 `src/utils/`
 
@@ -130,6 +137,39 @@ python3 -m src.research.tail_reversal.analyze_threshold --threshold 0.95 --resum
 - 读取已有的反转明细
 - 读取 `progress.json` 里的市场分页位置
 - 从上次断点继续处理后续市场
+
+## BTC 五分钟到达率脚本
+
+新增了一套独立的 BTC 五分钟到达率脚本，输出全部放在单独目录下，不会和 `tail_reversal` 冲突：
+
+```bash
+export DOME_API_KEY=your_api_key
+python3 -m src.research.btc_5m_arrival.analyze_arrival --min-threshold 0.52 --max-threshold 0.58 --step 0.01
+```
+
+脚本会：
+
+- 扫描所有 `closed` 市场
+- 只筛选 BTC 五分钟、且 outcome 为 `Yes/No` 的市场
+- 对每个匹配市场拉 `1m candlesticks`
+- 统计 `Yes` 和 `No` 历史最高价分别到达过哪些价格档位
+- 汇总 `0.52-0.58` 每一档的到达次数和到达频率
+- 支持断点续跑
+
+输出默认在：
+
+- `data/raw/btc_5m_arrival/markets/selected_markets.jsonl`
+- `data/processed/btc_5m_arrival/progress.json`
+- `data/processed/btc_5m_arrival/summary.json`
+- `data/processed/btc_5m_arrival/hits.jsonl`
+- `data/processed/btc_5m_arrival/failed_markets.jsonl`
+
+继续跑的命令：
+
+```bash
+export DOME_API_KEY=your_api_key
+python3 -m src.research.btc_5m_arrival.analyze_arrival --resume
+```
 
 ## 这样分的原因
 

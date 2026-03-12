@@ -1,0 +1,18 @@
+{
+  "thresholds": [
+    "0.52",
+    "0.53",
+    "0.54",
+    "0.55",
+    "0.56",
+    "0.57",
+    "0.58"
+  ],
+  "scanned_closed_markets": 3500,
+  "matched_markets": 0,
+  "processed_markets": 0,
+  "hit_markets": 0,
+  "failed_markets": 0,
+  "markets_page_pagination_key": "eyJjbG9zZV90aW1lIjoiMjAyNi0wMS0wOVQwNjozOTo1Ni4wMDAwMDAwMDBaIiwidm9sdW1lX3RvdGFsIjo0NjY4ODgwLjY5MjU1NTk5OSwiY29uZGl0aW9uX2lkIjoiMHhjMDZkY2ZiNTFiMTlmMzZhN2JjMDQ4N2JjMGE2NDIwZDFmNzMwOTUxNzgwNTllZTI5MmU1ZjQ4YjVkOGQyYWM4IiwidG90YWwiOjQ2NTcyN30=",
+  "last_completed_condition_id": null
+}
