@@ -34,5 +34,22 @@ module.exports = {
         PYTHONUNBUFFERED: "1",
       },
     },
+    {
+      name: "btc-5m-arrival-complex",
+      cwd: "/Users/caoxiangrui/Desktop/external/polymarket_backtest",
+      script: "./scripts/run_btc_5m_arrival_complex.sh",
+      interpreter: "bash",
+      autorestart: true,
+      max_restarts: 20,
+      restart_delay: 5000,
+      kill_timeout: 10000,
+      time: true,
+      merge_logs: true,
+      out_file: "./logs/btc_5m_arrival_complex.out.log",
+      error_file: "./logs/btc_5m_arrival_complex.err.log",
+      env: {
+        PYTHONUNBUFFERED: "1",
+      },
+    },
   ],
 };
