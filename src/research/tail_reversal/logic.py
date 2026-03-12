@@ -1,3 +1,6 @@
+# Resume command:
+# PYTHONUNBUFFERED=1 DOME_API_KEY='your_dome_api_key' python3 -u -m src.research.tail_reversal.analyze_threshold --threshold 0.95 --resume
+
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional
 

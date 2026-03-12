@@ -1,7 +1,7 @@
 {
   "threshold": 0.95,
-  "processed_markets": 1144,
-  "reversal_count": 66,
+  "processed_markets": 1161,
+  "reversal_count": 68,
   "markets_page_pagination_key": "eyJjbG9zZV90aW1lIjoiMjAyNS0xMi0xOVQwNzowNToyOS4wMDAwMDAwMDBaIiwidm9sdW1lX3RvdGFsIjo5NDU1MDMyLjkwMDkyOTk4LCJjb25kaXRpb25faWQiOiIweDJjZjg1NmM1YTBkNmFhYTQ3ZmJmOWI2YWZlNmUyMGFkNWY1OWFjY2IwMGZhYjA5YzE4MDAxZTg1ZjkyMmZhZDMiLCJ0b3RhbCI6NDY0ODkxfQ==",
-  "last_completed_condition_id": "0x3376277f95016b046ccc398942605382ebce0673ca2934c0732f61ace19ccd06"
+  "last_completed_condition_id": "0x0b16eb7741855ca3d4383fabb8b760c897c2165d603916497f484b87ba9826dc"
 }
