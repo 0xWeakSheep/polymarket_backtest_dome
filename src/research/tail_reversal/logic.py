@@ -64,7 +64,14 @@ def analyze_market(
     side_b_label = str(side_b.get("label") or "").strip()
     side_a_token_id = str(side_a.get("id") or "").strip()
     side_b_token_id = str(side_b.get("id") or "").strip()
-    winning_side = str(market.get("winning_side") or "").strip()
+    winning_side_raw = market.get("winning_side") or {}
+    winning_side = ""
+    winning_token_id = ""
+    if isinstance(winning_side_raw, dict):
+        winning_side = str(winning_side_raw.get("label") or "").strip()
+        winning_token_id = str(winning_side_raw.get("id") or "").strip()
+    else:
+        winning_side = str(winning_side_raw or "").strip()
 
     if not side_a_label or not side_b_label or not side_a_token_id or not side_b_token_id or not winning_side:
         return None
@@ -77,6 +84,14 @@ def analyze_market(
         losing_side = side_b_label
         losing_token_id = side_b_token_id
     elif winning_norm == side_b_norm:
+        losing_side = side_a_label
+        losing_token_id = side_a_token_id
+    elif winning_token_id == side_a_token_id:
+        winning_side = side_a_label
+        losing_side = side_b_label
+        losing_token_id = side_b_token_id
+    elif winning_token_id == side_b_token_id:
+        winning_side = side_b_label
         losing_side = side_a_label
         losing_token_id = side_a_token_id
     else:
@@ -139,4 +154,3 @@ def analyze_market(
         first_trade_timestamp=first_trade_timestamp,
         last_trade_timestamp=last_trade_timestamp,
     )
-
