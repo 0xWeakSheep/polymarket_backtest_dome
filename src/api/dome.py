@@ -68,32 +68,61 @@ class DomeClient:
         params: Optional[Dict[str, object]] = None,
         limit: int = 100,
     ) -> Generator[Dict[str, object], None, None]:
-        next_key: Optional[str] = None
+        for page in self.paginate_pages(path, items_key, params=params, limit=limit):
+            for item in page["items"]:
+                if isinstance(item, dict):
+                    yield item
+
+    def paginate_pages(
+        self,
+        path: str,
+        items_key: str,
+        params: Optional[Dict[str, object]] = None,
+        limit: int = 100,
+        start_pagination_key: Optional[str] = None,
+    ) -> Generator[Dict[str, object], None, None]:
+        current_key = start_pagination_key
         while True:
             page_params = dict(params or {})
             page_params["limit"] = limit
-            if next_key:
-                page_params["pagination_key"] = next_key
+            if current_key:
+                page_params["pagination_key"] = current_key
 
             payload = self._request_json(path, page_params)
             items = payload.get(items_key, [])
             if not isinstance(items, list):
                 raise DomeAPIError(f"Unexpected payload shape for {path}: missing list '{items_key}'")
 
-            for item in items:
-                if isinstance(item, dict):
-                    yield item
-
             pagination = payload.get("pagination", {})
-            if not isinstance(pagination, dict) or not pagination.get("has_more"):
+            if not isinstance(pagination, dict):
+                pagination = {}
+
+            next_key = pagination.get("pagination_key") if pagination.get("has_more") else None
+            yield {
+                "items": items,
+                "page_pagination_key": current_key,
+                "next_pagination_key": next_key,
+                "pagination": pagination,
+            }
+
+            if not pagination.get("has_more") or not next_key:
                 break
 
-            next_key = pagination.get("pagination_key")
-            if not next_key:
-                break
+            current_key = next_key
 
     def iter_closed_markets(self) -> Iterable[Dict[str, object]]:
         return self.paginate("/polymarket/markets", "markets", params={"status": "closed"}, limit=100)
+
+    def iter_closed_market_pages(
+        self, start_pagination_key: Optional[str] = None
+    ) -> Iterable[Dict[str, object]]:
+        return self.paginate_pages(
+            "/polymarket/markets",
+            "markets",
+            params={"status": "closed"},
+            limit=100,
+            start_pagination_key=start_pagination_key,
+        )
 
     def iter_orders_for_condition(self, condition_id: str) -> Iterable[Dict[str, object]]:
         return self.paginate(
@@ -101,4 +130,21 @@ class DomeClient:
             "orders",
             params={"condition_id": condition_id},
             limit=1000,
+        )
+
+    def get_candlesticks(
+        self,
+        condition_id: str,
+        *,
+        start_time: int,
+        end_time: int,
+        interval: int = 1440,
+    ) -> Dict[str, object]:
+        return self._request_json(
+            f"/polymarket/candlesticks/{condition_id}",
+            params={
+                "start_time": start_time,
+                "end_time": end_time,
+                "interval": interval,
+            },
         )

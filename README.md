@@ -96,7 +96,7 @@ polymarket_backtest/
 
 ## 当前可运行脚本
 
-目前已经实现了第一版 `0.95` 尾盘反转统计脚本：
+目前已经实现了第一版 `0.95` 反转统计脚本，主数据源改为 `markets + candlesticks`：
 
 ```bash
 export DOME_API_KEY=your_api_key
@@ -106,16 +106,30 @@ python3 -m src.research.tail_reversal.analyze_threshold --threshold 0.95
 脚本会：
 
 - 拉取所有 `closed` 市场
-- 针对每个市场分页拉取全部历史 trades
-- 判断任一 side 是否出现过 `>= 0.95`
-- 判断最终输掉的 side 是否曾经到过 `>= 0.95`
-- 输出逐市场结果和汇总结果
+- 对每个市场拉对应时间范围内的 `candlesticks`
+- 找出最终输掉的那一边
+- 扫输掉一边的 `price.high`
+- 只要任一 candle 的 `price.high >= 0.95`，就记为一次反转
+- 按市场更新进度，支持断点续跑
+- 只保存进度统计和反转市场明细
 
 输出文件默认在：
 
-- `data/processed/tail_reversal_095_results.jsonl`
-- `data/processed/tail_reversal_095_results.csv`
-- `reports/tables/tail_reversal_095_summary.json`
+- `data/processed/tail_reversal_095_reversals.jsonl`
+- `data/processed/tail_reversal_095_progress.json`
+
+如果中途中断，可以继续跑：
+
+```bash
+export DOME_API_KEY=your_api_key
+python3 -m src.research.tail_reversal.analyze_threshold --threshold 0.95 --resume
+```
+
+这会：
+
+- 读取已有的反转明细
+- 读取 `progress.json` 里的市场分页位置
+- 从上次断点继续处理后续市场
 
 ## 这样分的原因
 
