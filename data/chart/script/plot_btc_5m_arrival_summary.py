@@ -1,3 +1,5 @@
+"""Run: python3 data/chart/script/plot_btc_5m_arrival_summary.py"""
+
 from __future__ import annotations
 
 import json
