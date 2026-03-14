@@ -1,0 +1,17 @@
+{
+  "fifteen_slug_prefix": "btc-updown-15m",
+  "five_slug_prefix": "btc-updown-5m",
+  "first_fifteen_slug_timestamp": 1770931800,
+  "next_fifteen_slug_timestamp": 1771606800,
+  "requested_15m_slugs": 750,
+  "fetched_15m_markets": 750,
+  "processed_15m_markets": 750,
+  "eligible_up_up_samples": 190,
+  "eligible_down_down_samples": 157,
+  "hit_up_up_samples": 150,
+  "hit_down_down_samples": 111,
+  "no_hit_up_up_samples": 40,
+  "no_hit_down_down_samples": 46,
+  "failed_markets": 0,
+  "last_completed_condition_id": "0xfcc2ef95399bde56af12a872d1385361db67d526ee214ea6b726f9958f1a28ff"
+}

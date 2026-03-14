@@ -1,0 +1,23 @@
+{
+  "strategy_name": "btc_15m_last5m_misalignment",
+  "price_field": "close_dollars",
+  "arb_condition": "15m_target_side + last5m_opposite_side < 1.0",
+  "fifteen_slug_prefix": "btc-updown-15m",
+  "five_slug_prefix": "btc-updown-5m",
+  "first_fifteen_slug_timestamp": 1770931800,
+  "requested_15m_slugs": 750,
+  "fetched_15m_markets": 750,
+  "processed_15m_markets": 750,
+  "eligible_up_up_samples": 190,
+  "hit_up_up_samples": 150,
+  "hit_rate_up_up": 0.789474,
+  "eligible_down_down_samples": 157,
+  "hit_down_down_samples": 111,
+  "hit_rate_down_down": 0.707006,
+  "no_hit_up_up_samples": 40,
+  "no_hit_down_down_samples": 46,
+  "eligible_total": 347,
+  "hit_total": 261,
+  "hit_rate_total": 0.752161,
+  "failed_markets": 0
+}

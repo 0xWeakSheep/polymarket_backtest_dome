@@ -1,10 +1,11 @@
 # polymarket_backtest_dome
 
-这是一个基于 Dome API 的 Polymarket 研究型回测项目。当前先聚焦三个方向：
+这是一个基于 Dome API 的 Polymarket 研究型回测项目。当前先聚焦四个方向：
 
 - 尾盘高概率价格区间的反转频率统计，比如 `0.95+`
 - 加密市场的波动率与到达率研究
 - BTC 五分钟 `Up/Down` 市场的价格到达率统计
+- BTC `15m` 主盘口与最后一个 `5m` 子盘口之间的完备性套利错价统计
 
 目录先保持简单，按“配置、数据、公共能力、研究主题”来分，不按接口拆得太细。
 
@@ -24,6 +25,7 @@ polymarket_backtest/
 │   ├── research/
 │   │   ├── tail_reversal/
 │   │   ├── btc_5m_arrival/
+│   │   ├── completeness_arb/
 │   │   └── vol_arrival/
 │   └── utils/
 ├── notebooks/
@@ -75,6 +77,14 @@ polymarket_backtest/
 
 - 放 BTC 五分钟 `Up/Down` 市场的价格到达率课题。
 - 当前按 `btc-updown-5m-<timestamp>` 的 slug 规则生成全量盘口，再用 `candlesticks` 统计市场级到达频率。
+
+`src/research/completeness_arb/`
+
+- 放 BTC `15m` 与最后一个 `5m` 子盘口的跨期限完备性套利研究。
+- 当前第一版只统计一种具体错价：
+  - 如果前两个 `5m` 都是 `Up`，检查第三个 `5m` 的 `Down` 与 `15m` 的 `Up` 是否有分钟级 `close_dollars` 之和 `< 1`
+  - 如果前两个 `5m` 都是 `Down`，检查第三个 `5m` 的 `Up` 与 `15m` 的 `Down` 是否有分钟级 `close_dollars` 之和 `< 1`
+- 这一套结果会单独写到 `data/processed/completeness_arb/`，不会碰其它策略的输出。
 
 `src/utils/`
 
@@ -170,6 +180,43 @@ python3 -m src.research.btc_5m_arrival.analyze_arrival --min-threshold 0.52 --ma
 ```bash
 export DOME_API_KEY=your_api_key
 python3 -m src.research.btc_5m_arrival.analyze_arrival --resume
+```
+
+## BTC 15m/最后5m 完备性套利错价脚本
+
+新增了一套完全隔离的跨期限错价统计脚本：
+
+```bash
+export DOME_API_KEY=your_api_key
+python3 -m src.research.completeness_arb.analyze_last5m_misalignment
+```
+
+脚本会：
+
+- 从最早的 `btc-updown-5m-1770932400` 反推出 `15m` 起点
+- 按 `btc-updown-15m-<timestamp>` 逐个生成 `15m` 市场 slug
+- 为每个 `15m` 市场找到对应的三个 `5m` 子盘口
+- 只把前两个 `5m` 同向的样本纳入分母
+- 在第三个 `5m` 窗口内按分钟 `close_dollars` 检查：
+  - `up_up` 路径：`15m_up + last5m_down < 1`
+  - `down_down` 路径：`15m_down + last5m_up < 1`
+- 分开记录样本明细、命中时刻、未命中样本和汇总统计
+- 支持断点续跑
+
+输出默认在：
+
+- `data/processed/completeness_arb/btc_15m_last5m_misalignment/progress.json`
+- `data/processed/completeness_arb/btc_15m_last5m_misalignment/sample_records.jsonl`
+- `data/processed/completeness_arb/btc_15m_last5m_misalignment/opportunity_records.jsonl`
+- `data/processed/completeness_arb/btc_15m_last5m_misalignment/miss_records.jsonl`
+- `data/processed/completeness_arb/btc_15m_last5m_misalignment/summary.json`
+- `data/processed/completeness_arb/btc_15m_last5m_misalignment/failed_markets.jsonl`
+
+继续跑的命令：
+
+```bash
+export DOME_API_KEY=your_api_key
+python3 -m src.research.completeness_arb.analyze_last5m_misalignment --resume
 ```
 
 ## PM2 运维

@@ -51,5 +51,22 @@ module.exports = {
         PYTHONUNBUFFERED: "1",
       },
     },
+    {
+      name: "btc-15m-last5m-misalignment",
+      cwd: "/Users/caoxiangrui/Desktop/external/polymarket_backtest",
+      script: "./scripts/run_completeness_arb_last5m.sh",
+      interpreter: "bash",
+      autorestart: true,
+      max_restarts: 20,
+      restart_delay: 5000,
+      kill_timeout: 10000,
+      time: true,
+      merge_logs: true,
+      out_file: "./logs/btc_15m_last5m_misalignment.out.log",
+      error_file: "./logs/btc_15m_last5m_misalignment.err.log",
+      env: {
+        PYTHONUNBUFFERED: "1",
+      },
+    },
   ],
 };
