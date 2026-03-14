@@ -10,11 +10,11 @@
   ],
   "slug_prefix": "btc-updown-5m",
   "first_slug_timestamp": 1770932400,
-  "next_slug_timestamp": 1773366000,
-  "requested_slug_count": 8112,
-  "fetched_candidate_markets": 8022,
-  "matched_target_markets": 8022,
-  "processed_markets": 8022,
-  "failed_markets": 0,
-  "last_completed_condition_id": "0xbd32ba017574f15ccd1a774d7f2c09fe83c1aa4f249e4c9f33b5e27c13ab0a4b"
+  "next_slug_timestamp": 1773488400,
+  "requested_slug_count": 8520,
+  "fetched_candidate_markets": 8060,
+  "matched_target_markets": 8060,
+  "processed_markets": 8060,
+  "failed_markets": 121,
+  "last_completed_condition_id": "0x432d55de9c85282a4c44b779819faa87bafbe1a556d316d9830d258cf5bae3d7"
 }

@@ -1,0 +1,44 @@
+{
+  "0.52": {
+    "up_peak_day": "2026-02-12",
+    "up_peak_rate": 0.148148,
+    "down_peak_day": "2026-03-01",
+    "down_peak_rate": 0.100694
+  },
+  "0.53": {
+    "up_peak_day": "2026-02-12",
+    "up_peak_rate": 0.148148,
+    "down_peak_day": "2026-02-15",
+    "down_peak_rate": 0.125
+  },
+  "0.54": {
+    "up_peak_day": "2026-02-12",
+    "up_peak_rate": 0.222222,
+    "down_peak_day": "2026-02-15",
+    "down_peak_rate": 0.149306
+  },
+  "0.55": {
+    "up_peak_day": "2026-02-12",
+    "up_peak_rate": 0.222222,
+    "down_peak_day": "2026-02-15",
+    "down_peak_rate": 0.173611
+  },
+  "0.56": {
+    "up_peak_day": "2026-02-12",
+    "up_peak_rate": 0.222222,
+    "down_peak_day": "2026-02-15",
+    "down_peak_rate": 0.208333
+  },
+  "0.57": {
+    "up_peak_day": "2026-02-26",
+    "up_peak_rate": 0.225694,
+    "down_peak_day": "2026-02-15",
+    "down_peak_rate": 0.208333
+  },
+  "0.58": {
+    "up_peak_day": "2026-03-12",
+    "up_peak_rate": 0.226244,
+    "down_peak_day": "2026-02-15",
+    "down_peak_rate": 0.222222
+  }
+}
