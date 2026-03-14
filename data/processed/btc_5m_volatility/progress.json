@@ -1,0 +1,9 @@
+{
+  "symbol": "BTCUSDT",
+  "selected_market_count": 8060,
+  "processed_markets": 8060,
+  "failed_markets": 0,
+  "skipped_existing_markets": 8060,
+  "fetched_spot_candles": 41720,
+  "last_completed_condition_id": "0x432d55de9c85282a4c44b779819faa87bafbe1a556d316d9830d258cf5bae3d7"
+}
