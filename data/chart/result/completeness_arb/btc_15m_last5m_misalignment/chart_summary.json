@@ -1,0 +1,31 @@
+{
+  "processed_total": 2562,
+  "eligible_total": 1251,
+  "opportunity_total": 843,
+  "opportunity_rate_of_processed": 0.32904,
+  "opportunity_rate_of_eligible": 0.673861,
+  "eligible_breakdown": {
+    "up_up": 644,
+    "down_down": 607
+  },
+  "opportunity_breakdown": {
+    "up_up": 460,
+    "down_down": 383
+  },
+  "peak_opportunity_day_utc": "2026-02-16",
+  "peak_opportunity_count": 40,
+  "best_edge_record": {
+    "fifteen_condition_id": "0x4b3c4c9a3fade02642e781a0ed976944e18447e3c27ae332b6bf4d4f62da37d4",
+    "fifteen_market_slug": "btc-updown-15m-1771036200",
+    "five_3_slug": "btc-updown-5m-1771036800",
+    "path_pattern": "up_up",
+    "trigger_ts": 1771037100,
+    "fifteen_side": "Up",
+    "last5m_side": "Down",
+    "fifteen_price": 0.29,
+    "last5m_price": 0.21,
+    "price_sum": 0.5,
+    "edge": 0.5,
+    "opportunity_key": "0x4b3c4c9a3fade02642e781a0ed976944e18447e3c27ae332b6bf4d4f62da37d4:1771037100:up_up"
+  }
+}
