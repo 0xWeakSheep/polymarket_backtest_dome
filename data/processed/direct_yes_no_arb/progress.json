@@ -1,0 +1,20 @@
+{
+  "strategy_name": "direct_yes_no_lt_1_orderbook",
+  "price_field": "best_ask",
+  "arb_condition": "yes_ask + no_ask < 1.0",
+  "market_scope": "closed yes/no markets with orderbook history coverage",
+  "orderbook_history_start_ms": 1760400000000,
+  "requested_pages": 1,
+  "fetched_closed_markets": 100,
+  "matched_yes_no_markets": 15,
+  "processed_markets": 4,
+  "opportunity_markets": 0,
+  "opportunity_count": 0,
+  "no_opportunity_markets": 4,
+  "failed_markets": 0,
+  "skipped_pre_orderbook_markets": 10,
+  "next_pagination_key": null,
+  "last_completed_condition_id": "0x230144e34a84dfd0ebdc6de7fde37780e28154f6f84dd8880c7f0e58d302d448",
+  "current_condition_id": "0xebddfcf7b4401dade8b4031770a1ab942b01854f3bed453d5df9425cd9f211a9",
+  "current_market_slug": "will-zohran-mamdani-win-the-2025-nyc-mayoral-election"
+}

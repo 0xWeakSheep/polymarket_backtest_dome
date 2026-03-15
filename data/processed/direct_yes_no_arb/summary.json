@@ -1,0 +1,17 @@
+{
+  "strategy_name": "direct_yes_no_lt_1_orderbook",
+  "price_field": "best_ask",
+  "arb_condition": "yes_ask + no_ask < 1.0",
+  "market_scope": "closed yes/no markets with orderbook history coverage",
+  "orderbook_history_start_ms": 1760400000000,
+  "requested_pages": 1,
+  "fetched_closed_markets": 100,
+  "matched_yes_no_markets": 12,
+  "processed_markets": 4,
+  "opportunity_markets": 0,
+  "opportunity_count": 0,
+  "opportunity_market_rate": 0.0,
+  "no_opportunity_markets": 4,
+  "failed_markets": 0,
+  "skipped_pre_orderbook_markets": 8
+}

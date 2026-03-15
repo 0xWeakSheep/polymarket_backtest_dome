@@ -85,5 +85,22 @@ module.exports = {
         PYTHONUNBUFFERED: "1",
       },
     },
+    {
+      name: "direct-yes-no-arb",
+      cwd: "/Users/caoxiangrui/Desktop/external/polymarket_backtest",
+      script: "./scripts/run_direct_yes_no_arb.sh",
+      interpreter: "bash",
+      autorestart: false,
+      max_restarts: 20,
+      restart_delay: 5000,
+      kill_timeout: 10000,
+      time: true,
+      merge_logs: true,
+      out_file: "./logs/direct_yes_no_arb.out.log",
+      error_file: "./logs/direct_yes_no_arb.err.log",
+      env: {
+        PYTHONUNBUFFERED: "1",
+      },
+    },
   ],
 };
