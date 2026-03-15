@@ -1,7 +1,7 @@
 {
   "threshold": 0.95,
-  "processed_markets": 1796,
-  "reversal_count": 91,
-  "markets_page_pagination_key": "eyJjbG9zZV90aW1lIjoiMjAyNS0xMS0yN1QyMjo1MDo0Ny4wMDAwMDAwMDBaIiwidm9sdW1lX3RvdGFsIjo3NzA2NjgwLjI3OTQ1Nzk4NiwiY29uZGl0aW9uX2lkIjoiMHgwOTc1ODM2ZTQ5Nzc1ODgwMGExODI4ZDczZTBmYzM3YzAxZTVhMTlkMGU5NWQyZWM3OGMzMTJjMTViNGQ1MDIzIiwidG90YWwiOjQ2NDg5MX0=",
-  "last_completed_condition_id": "0x9ce4ce441b98560634b67589135dac0034a45edaacf13455c9add1ddbb6b7dec"
+  "processed_markets": 17391,
+  "reversal_count": 441,
+  "markets_page_pagination_key": "eyJjbG9zZV90aW1lIjoiMjAyNi0wMi0yNFQyMTowMDoxMi4wMDAwMDAwMDBaIiwidm9sdW1lX3RvdGFsIjoxMjg2NjgwLjYyMDYwNSwiY29uZGl0aW9uX2lkIjoiMHg5NmFiYTg3NmZkNzgwMjllN2RjMDAzODJkNzdjZDAwOTJiNmM0MTVlYTBhOGExY2E3Y2ZmNTkxOWVhYzA1NTFiIiwidG90YWwiOjQ2NDg5MX0=",
+  "last_completed_condition_id": "0xb79757ec682d6ca5a3e4faf275214ef3f06ca5c1ba156bcb1d059183ed153d65"
 }
