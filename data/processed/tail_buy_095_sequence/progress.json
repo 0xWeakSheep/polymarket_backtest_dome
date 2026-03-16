@@ -1,0 +1,13 @@
+{
+  "threshold": 0.95,
+  "market_limit": 17391,
+  "processed_markets": 17391,
+  "triggered_markets": 3839,
+  "success_count": 3402,
+  "failure_count": 437,
+  "missing_trigger_markets": 13470,
+  "failed_markets": 86,
+  "markets_page_pagination_key": "eyJjbG9zZV90aW1lIjoiMjAyNS0xMi0xMlQwMTozMzo0OC4wMDAwMDAwMDBaIiwidm9sdW1lX3RvdGFsIjoxODg1NTEuMzExMDIsImNvbmRpdGlvbl9pZCI6IjB4MTQwYjk4YTZhMDAzNGJlYWY2MGYwMmVlZDcwOTdhMjQ1NjMyZjc5YWNkNmNjZjYzNGI2NGE3Y2E1ZTZlZjIyNCIsInRvdGFsIjo0ODU2MDl9",
+  "last_completed_condition_id": "0x387a66512482821ba7876bb92255baca9129147822f96d6c166c5fe2062b50e4",
+  "current_market_slug": null
+}

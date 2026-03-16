@@ -1,0 +1,14 @@
+{
+  "strategy_name": "tail_buy_095_sequence",
+  "threshold": 0.95,
+  "market_limit": 17391,
+  "processed_markets": 17391,
+  "triggered_markets": 3839,
+  "success_count": 3402,
+  "failure_count": 437,
+  "missing_trigger_markets": 13470,
+  "failed_markets": 86,
+  "trigger_rate": 0.220746,
+  "success_rate": 0.886168,
+  "failure_rate": 0.113832
+}

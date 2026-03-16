@@ -6,12 +6,12 @@
   "orderbook_history_start_ms": 1760400000000,
   "requested_pages": 1,
   "fetched_closed_markets": 100,
-  "matched_yes_no_markets": 12,
-  "processed_markets": 4,
+  "matched_yes_no_markets": 32,
+  "processed_markets": 8,
   "opportunity_markets": 0,
   "opportunity_count": 0,
   "opportunity_market_rate": 0.0,
-  "no_opportunity_markets": 4,
-  "failed_markets": 0,
-  "skipped_pre_orderbook_markets": 8
+  "no_opportunity_markets": 8,
+  "failed_markets": 1,
+  "skipped_pre_orderbook_markets": 23
 }
