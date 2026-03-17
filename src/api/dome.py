@@ -150,6 +150,34 @@ class DomeClient:
             limit=1000,
         )
 
+    def iter_order_pages(
+        self,
+        *,
+        params: Optional[Dict[str, object]] = None,
+        start_pagination_key: Optional[str] = None,
+        limit: int = 1000,
+    ) -> Iterable[Dict[str, object]]:
+        return self.paginate_pages(
+            "/polymarket/orders",
+            "orders",
+            params=params,
+            limit=limit,
+            start_pagination_key=start_pagination_key,
+        )
+
+    def iter_orders(
+        self,
+        *,
+        params: Optional[Dict[str, object]] = None,
+        limit: int = 1000,
+    ) -> Iterable[Dict[str, object]]:
+        return self.paginate(
+            "/polymarket/orders",
+            "orders",
+            params=params,
+            limit=limit,
+        )
+
     def get_candlesticks(
         self,
         condition_id: str,

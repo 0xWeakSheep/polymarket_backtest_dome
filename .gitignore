@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 logs/*.log
+.env
+.DS_Store
+data/processed/btc_15m_theoretical_value/
+data/chart/result/btc_15m_theoretical_value/
